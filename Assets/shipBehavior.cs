@@ -23,13 +23,19 @@ public class shipBehavior : MonoBehaviour {
 
 	public Rigidbody satelliteBody;
 
+	public Vector3 startPosition;
+
+
 	#endregion
 	
 	// Start - used for initilization at the start of the simulation
 	void Start () {
 		satelliteBody = GetComponent<Rigidbody> ();
 		satelliteBody.maxAngularVelocity = 50;
+		startPosition = transform.position;
 		satelliteBody.AddForce (0, 0, 94.3f, ForceMode.VelocityChange);
+		Debug.Log (satelliteBody.inertiaTensor);
+		//satelliteBody.AddTorque (new Vector3 (.000f, yaw, 0.0001f) * satelliteBody.mass);
 	}
 	
 	// Update - Called every frame
@@ -38,11 +44,14 @@ public class shipBehavior : MonoBehaviour {
 		KillShipRotation ();
 		if (Input.GetKeyDown (KeyCode.T))
 			killRotation = true;
-		
-		
-		Debug.DrawRay(transform.position, UpRay.position - transform.position, Color.blue); // DEBUG
-		Debug.DrawRay(transform.position, FrontRay.position - transform.position, Color.blue); // DEBUG
-		Debug.DrawRay(transform.position, LeftRay.position - transform.position, Color.blue); // DEBUG
+
+
+		Debug.Log (Vector3.Angle(startPosition, transform.position));
+		//Debug.Log (transform.position);
+		//Debug.DrawRay(transform.position, UpRay.position - transform.position, Color.blue); // DEBUG
+		//Debug.DrawRay(transform.position, FrontRay.position - transform.position, Color.blue); // DEBUG
+		//Debug.DrawRay(transform.position, LeftRay.position - transform.position, Color.blue); // DEBUG
+		//Debug.DrawRay (transform.position, transform.forward, Color.blue);
 	}
 	
 	// FixedUpdate - called every fixed framerate or every physics step, eliminates error from gravity calculations
@@ -60,16 +69,6 @@ public class shipBehavior : MonoBehaviour {
 		
 		Vector3 gravityVector = GetComponent<Rigidbody> ().position.normalized * -grav; // normalize the position vector of the ship then apply grav
 		satelliteBody.AddForce (gravityVector, ForceMode.Acceleration); 	// add the new force to the ship as an acceleration
-	}
-	
-	// GetShipVelocity - Gets the absoulte ship velocity (Sqrt(x^2 + y^2 + z^2)) where x, y, and z are the velocity components
-	public float GetShipVelocity () {
-		float xVel = transform.InverseTransformDirection (GetComponent<Rigidbody> ().velocity).x;
-		float yVel = transform.InverseTransformDirection (GetComponent<Rigidbody> ().velocity).y;
-		float zVel = transform.InverseTransformDirection (GetComponent<Rigidbody> ().velocity).z;
-		Vector3 velocityVector = new Vector3 (xVel, yVel, zVel);
-		
-		return Mathf.Sqrt(velocityVector.sqrMagnitude);
 	}
 	
 	// ChangeTimeScale - allows the simulation to speed up, helpful for longer and bigger orbits
@@ -90,17 +89,18 @@ public class shipBehavior : MonoBehaviour {
 		}
 	}
 
-	//********************************UNFINISHED NOT WORKING CORRECTLY****************************************//
+	//********************************UNFINISHED NOT WORKING CORRECTLY****************************************
 	// ChangeShipOrientation - Handles the controls for rotation the ships yaw, pitch, and roll
 	void ChangeShipOrientation () {
 
 		//satelliteBody.centerOfMass = transform.position;
 		//Debug.Log (satelliteBody.centerOfMass);
-		
-		/*float changeYPR = .000001f;
+	
+		float changeYPR = 10.0f;
 		yaw = 0.0f;
 		pitch = 0.0f;
 		roll = 0.0f;
+		satelliteBody.angularVelocity = Vector3.zero;
 		
 		if (Input.GetKey (KeyCode.A))
 			yaw -= changeYPR;
@@ -115,27 +115,31 @@ public class shipBehavior : MonoBehaviour {
 		if (Input.GetKey (KeyCode.E))
 			roll += changeYPR;
 		
-		satelliteBody.AddRelativeTorque (new Vector3(pitch, yaw, roll) * satelliteBody.mass);
-*/
+		satelliteBody.AddRelativeTorque (new Vector3(pitch, yaw, roll));// * satelliteBody.mass);
+		/*
 
-		float YPRforce = .0000001f;
+		float YPRforce = .00001f;
+
+		pitch = Input.GetAxis ("Vertical") * YPRforce * Time.deltaTime;
 
 		if (Input.GetKey (KeyCode.A))
 			satelliteBody.AddRelativeTorque (-Vector3.up * YPRforce * satelliteBody.mass);
 		if (Input.GetKey (KeyCode.D))
 			satelliteBody.AddRelativeTorque (Vector3.up * YPRforce * satelliteBody.mass);
 		if (Input.GetKey (KeyCode.W))
-			satelliteBody.AddRelativeTorque (-Vector3.right * YPRforce * satelliteBody.mass);
+			satelliteBody.AddRelativeTorque (-Vector3.right * pitch * satelliteBody.mass);
 		if (Input.GetKey (KeyCode.S))
-			satelliteBody.AddRelativeTorque (Vector3.right * YPRforce * satelliteBody.mass);
+			satelliteBody.AddRelativeTorque (Vector3.right * pitch * satelliteBody.mass);
 		if (Input.GetKey (KeyCode.Q))
 			satelliteBody.AddRelativeTorque (-Vector3.forward * YPRforce * satelliteBody.mass);
 		if (Input.GetKey (KeyCode.E))
 			satelliteBody.AddRelativeTorque (Vector3.forward * YPRforce * satelliteBody.mass);
 
-		Debug.Log (satelliteBody.angularVelocity.magnitude);
+		*/
+		//Debug.Log (satelliteBody.angularVelocity.magnitude);
 	}
-	
+
+
 	// KillShipRotation - eliminates the current torque on the ship to stabilize the ship
 	public void KillShipRotation()
 	{
@@ -165,17 +169,14 @@ public class shipBehavior : MonoBehaviour {
 	// AddSatelliteVelocity - Adds velocity directly forward from the front of the satellite
 	public void AddSatelliteVelocity()
 	{
-		float thrustIncrease = 1.0f;
-		Vector3 satelliteForward = FrontRay.position.normalized - transform.position.normalized;
+		float thrustIncrease = .01f;
 
-		if (Input.GetKey (KeyCode.J))
-			thrust = 0.0f;
 		if (Input.GetKey (KeyCode.H))
 			thrust += thrustIncrease;
+		else
+			thrust = 0.0f;
 
-		satelliteBody.AddRelativeForce (satelliteForward * thrust * satelliteBody.mass);
-
-		Debug.Log (thrust);
+		satelliteBody.AddForce (-transform.forward * thrust * Time.deltaTime, ForceMode.VelocityChange);
 	}
 	
 	
