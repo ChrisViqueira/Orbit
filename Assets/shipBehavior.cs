@@ -34,7 +34,7 @@ public class shipBehavior : MonoBehaviour {
 		satelliteBody.maxAngularVelocity = 50;
 		startPosition = transform.position;
 		satelliteBody.AddForce (0, 0, 94.3f, ForceMode.VelocityChange);
-		Debug.Log (satelliteBody.inertiaTensor);
+
 		//satelliteBody.AddTorque (new Vector3 (.000f, yaw, 0.0001f) * satelliteBody.mass);
 	}
 	
@@ -46,7 +46,7 @@ public class shipBehavior : MonoBehaviour {
 			killRotation = true;
 
 
-		Debug.Log (Vector3.Angle(startPosition, transform.position));
+		//Debug.Log (Vector3.Angle(startPosition, transform.position));
 		//Debug.Log (transform.position);
 		//Debug.DrawRay(transform.position, UpRay.position - transform.position, Color.blue); // DEBUG
 		//Debug.DrawRay(transform.position, FrontRay.position - transform.position, Color.blue); // DEBUG
@@ -95,8 +95,8 @@ public class shipBehavior : MonoBehaviour {
 
 		//satelliteBody.centerOfMass = transform.position;
 		//Debug.Log (satelliteBody.centerOfMass);
-	
-		float changeYPR = 10.0f;
+
+		float changeYPR = 20.0f;
 		yaw = 0.0f;
 		pitch = 0.0f;
 		roll = 0.0f;
@@ -136,7 +136,10 @@ public class shipBehavior : MonoBehaviour {
 			satelliteBody.AddRelativeTorque (Vector3.forward * YPRforce * satelliteBody.mass);
 
 		*/
-		//Debug.Log (satelliteBody.angularVelocity.magnitude);
+		Debug.Log ("x: " + satelliteBody.angularVelocity.x);
+		Debug.Log ("y: " + satelliteBody.angularVelocity.y);
+		Debug.Log ("z: " + satelliteBody.angularVelocity.z);
+		Debug.Log ("magnitude: " + satelliteBody.angularVelocity.magnitude);
 	}
 
 
