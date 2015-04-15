@@ -1,8 +1,10 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\shipBehavior.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\SpaceshipCameraController.cs">
     <Files>
-      <File FileName="Assets\shipBehavior.cs" Line="99" Column="23" />
+      <File FileName="Assets\SpaceshipCameraController.cs" Line="31" Column="26" />
+      <File FileName="Assets\shipBehavior.cs" Line="154" Column="59" />
+      <File FileName="..\Unityballs\MarballsUnity\Assets\Scripts\Player Scripts\CameraController.cs" Line="97" Column="24" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

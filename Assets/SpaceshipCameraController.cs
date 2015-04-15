@@ -2,34 +2,72 @@
 using System.Collections;
 
 public class SpaceshipCameraController : MonoBehaviour {
-
-	#region Variables
-
-	public Transform spaceShip; // Holds the position of the spaceship
-
-	public float theta;  	// Radians around y-axis (horizontal).
-	public float psy;	 			// Radians around x-axis (vertical).
-	public float radius; 				// Distance from satellite.
 	
-	#endregion
-
+	public Transform spaceShip; // Holding the transformations of the spacecraft
+	
+	public float defTheta = Mathf.PI / 2;   // Default value of theta.
+	public float defPsy = 0.5f;				// Default value of psy.
+	public float defRadius = 2f;			// Default radius from ship.
+	
+	public float theta;  					// Radians around y-axis (horizontal).
+	public float psy;	 					// Radians around x-axis (vertical).
+	public float radius; 					// Distance from marble.
+	public float shipRadius;				// Player preferred distance from ship.
+	public float shipPsy;					// Player preferred psy. Currently not adjustable.
+	
+	public const float PSYMAX = (Mathf.PI / 2) - 0.1f; // Maximum value for psy. Camera inverts at Pi/2+.
+	public const float PSYMIN = -(Mathf.PI / 2) + 0.1f;					   // Minimum value for psy.
+	public const float RADMIN = 1f;					   // Minimum distance from ship
+	public const float RADMAX = 5f;
+	
+	public float keyboardSensitivity; 	// Keyboard sensitivity.
+	
 	// Use this for initialization
 	void Start () {
-//		radius = Vector3.Distance(transform.position, spaceShip.position);
+		radius = defRadius;
+		shipRadius = radius;
+		shipPsy = psy;
+		
+		keyboardSensitivity = 1f;
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		CameraControls ();
+
+		// Allows zooming in and out.
+		if(Input.GetAxis("Mouse ScrollWheel") != 0) {
+			radius -= Input.GetAxis("Mouse ScrollWheel");
+			shipRadius = radius;	// Changes player preferred radius
+		} 
+
+		if (radius < RADMIN)
+			radius = RADMIN;
+		if (radius > RADMAX)
+			radius = RADMAX;
+	}
 	
+	//
+	void LateUpdate () {
+		transform.position = GetSphericalPosition ();
+		transform.LookAt (spaceShip.position);
 	}
-
-	void LateUpdate() {
-		gameObject.transform.position = GetShipSphericalPosition();
-		gameObject.transform.LookAt (spaceShip.position);
+	
+	// Assigning buttons to certain camera movements
+	void CameraControls () {
+		if (Input.GetKey (KeyCode.UpArrow))
+			MoveUp ();
+		if (Input.GetKey (KeyCode.DownArrow))
+			MoveDown ();
+		if (Input.GetKey (KeyCode.LeftArrow))
+			MoveLeft ();
+		if (Input.GetKey (KeyCode.RightArrow))
+			MoveRight ();
 	}
-
+	
+	
 	// GetSphericalPosition - Return spherical coordinate of camera
-	Vector3 GetShipSphericalPosition() {
+	Vector3 GetSphericalPosition() {
 		Vector3 retPos = new Vector3();
 		
 		// These are all using radians.
@@ -39,4 +77,32 @@ public class SpaceshipCameraController : MonoBehaviour {
 		
 		return retPos;
 	}
+	
+	// Control Functions
+	#region Control Functions
+	// Moves camera up.
+	public void MoveUp () {
+		psy = Mathf.Clamp(psy + (keyboardSensitivity * Time.deltaTime), PSYMIN, PSYMAX);
+	}
+	
+	// Moves camera down.
+	public void MoveDown() {
+		psy = Mathf.Clamp(psy - (keyboardSensitivity * Time.deltaTime), PSYMIN, PSYMAX);
+		
+	}
+	
+	// Moves camera left.
+	public void MoveLeft() {
+		theta -= keyboardSensitivity * Time.deltaTime;
+		
+	}
+	
+	// Moves camera right.
+	public void MoveRight() {
+		theta += keyboardSensitivity * Time.deltaTime;
+		
+		
+	}
+	
+	#endregion
 }

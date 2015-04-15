@@ -42,9 +42,6 @@ public class shipBehavior : MonoBehaviour {
 	void Update () {
 		ChangeTimeScale ();
 		KillShipRotation ();
-		if (Input.GetKeyDown (KeyCode.T))
-			killRotation = true;
-
 
 		//Debug.Log (Vector3.Angle(startPosition, transform.position));
 		//Debug.Log (transform.position);
@@ -96,11 +93,11 @@ public class shipBehavior : MonoBehaviour {
 		//satelliteBody.centerOfMass = transform.position;
 		//Debug.Log (satelliteBody.centerOfMass);
 
-		float changeYPR = 20.0f;
+		float changeYPR = 0.5f;
 		yaw = 0.0f;
 		pitch = 0.0f;
 		roll = 0.0f;
-		satelliteBody.angularVelocity = Vector3.zero;
+		//satelliteBody.angularVelocity = Vector3.zero;
 		
 		if (Input.GetKey (KeyCode.A))
 			yaw -= changeYPR;
@@ -135,37 +132,32 @@ public class shipBehavior : MonoBehaviour {
 		if (Input.GetKey (KeyCode.E))
 			satelliteBody.AddRelativeTorque (Vector3.forward * YPRforce * satelliteBody.mass);
 
-		*/
 		Debug.Log ("x: " + satelliteBody.angularVelocity.x);
 		Debug.Log ("y: " + satelliteBody.angularVelocity.y);
 		Debug.Log ("z: " + satelliteBody.angularVelocity.z);
 		Debug.Log ("magnitude: " + satelliteBody.angularVelocity.magnitude);
+		*/
 	}
 
 
 	// KillShipRotation - eliminates the current torque on the ship to stabilize the ship
 	public void KillShipRotation()
 	{
-		float dampenSpeed = .1f;
-		
+		float dampenSpeed = .98f;
+		float stillShip = .005f;
+		if (Input.GetKey (KeyCode.T) && !killRotation)
+			killRotation = true;
+
 		if (killRotation) {
-			if (yaw < 0.0f)
-				yaw += dampenSpeed;
-			if (pitch < 0.0f)
-				pitch += dampenSpeed;
-			if (roll < 0.0f)
-				roll += dampenSpeed;
-			
-			if (yaw > 0.0f)
-				yaw -= dampenSpeed;
-			if (pitch > 0.0f)
-				pitch -= dampenSpeed;
-			if (roll > 0.0f)
-				roll -= dampenSpeed;
-			
-			if (roll == 0.0f && yaw == 0.0f && pitch == 0.0f)
+			satelliteBody.angularVelocity *= dampenSpeed;
+
+			if (satelliteBody.angularVelocity.magnitude < stillShip){
+				satelliteBody.angularVelocity = Vector3.zero;
 				killRotation = false;
+			}
 		}
+
+		Debug.Log (satelliteBody.angularVelocity.magnitude);
 	}
 
 	//********************************UNFINISHED NOT WORKING CORRECTLY****************************************//
