@@ -5,8 +5,8 @@ public class shipBehavior : MonoBehaviour {
 	
 	#region VARIABLES
 	
-	//public const float GRAVITATIONAL_CONSTANT = .0000000000667f;
-	public const float GRAVITATIONAL_CONSTANT = .00667f;
+	public const float GRAVITATIONAL_CONSTANT = .0000000000667f;
+	//public const float GRAVITATIONAL_CONSTANT = .00667f;
 	
 	public Transform planet;
 	

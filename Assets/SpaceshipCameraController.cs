@@ -55,6 +55,8 @@ public class SpaceshipCameraController : MonoBehaviour {
 	
 	// Assigning buttons to certain camera movements
 	void CameraControls () {
+
+
 		if (Input.GetKey (KeyCode.UpArrow))
 			MoveUp ();
 		if (Input.GetKey (KeyCode.DownArrow))
@@ -82,24 +84,24 @@ public class SpaceshipCameraController : MonoBehaviour {
 	#region Control Functions
 	// Moves camera up.
 	public void MoveUp () {
-		psy = Mathf.Clamp(psy + (keyboardSensitivity * Time.deltaTime), PSYMIN, PSYMAX);
+		psy = Mathf.Clamp(psy + (keyboardSensitivity * Time.deltaTime * (1/Time.timeScale)), PSYMIN, PSYMAX);
 	}
 	
 	// Moves camera down.
 	public void MoveDown() {
-		psy = Mathf.Clamp(psy - (keyboardSensitivity * Time.deltaTime), PSYMIN, PSYMAX);
+		psy = Mathf.Clamp(psy - (keyboardSensitivity * Time.deltaTime * (1/Time.timeScale)), PSYMIN, PSYMAX);
 		
 	}
 	
 	// Moves camera left.
 	public void MoveLeft() {
-		theta -= keyboardSensitivity * Time.deltaTime;
+		theta -= keyboardSensitivity * Time.deltaTime * (1/Time.timeScale);
 		
 	}
 	
 	// Moves camera right.
 	public void MoveRight() {
-		theta += keyboardSensitivity * Time.deltaTime;
+		theta += keyboardSensitivity * Time.deltaTime * (1/Time.timeScale);
 		
 		
 	}
