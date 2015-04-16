@@ -50,7 +50,11 @@
      <Compile Include="Assets\PlanetController.cs" />
      <Compile Include="Assets\SpaceshipCameraController.cs" />
      <Compile Include="Assets\shipBehavior.cs" />
+     <None Include="Assets\Standard Assets\Particles\Sources\Shaders\Particle Alpha Blend (Queue +100).shader" />
      <None Include="Assets\SatelliteModels\ISS models 2011\README.txt" />
+ <Reference Include="Assembly-UnityScript-firstpass">
+ <HintPath>C:/Users/Chris Viqueira/Documents/GitHub/Orbit/Library/ScriptAssemblies/Assembly-UnityScript-firstpass.dll</HintPath>
+ </Reference>
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files (x86)/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

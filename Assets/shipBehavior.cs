@@ -5,36 +5,44 @@ public class shipBehavior : MonoBehaviour {
 	
 	#region VARIABLES
 	
-	public const float GRAVITATIONAL_CONSTANT = .0000000000667f;
-	//public const float GRAVITATIONAL_CONSTANT = .00667f;
-	
+	double GRAVITATIONAL_CONSTANT = 6.67384 * Mathf.Pow (10, -10);
+	double EARTH_MASS = 5.972 * Mathf.Pow (10, 15);
+	//double SHIP_MASS = 1.1 * Mathf.Pow (10, 5);
+
+	public ParticleSystem leftBoost;
+	public ParticleSystem rightBoost;
+	public ParticleSystem topBoost;
+
+	/*
 	public Transform planet;
 	
 	public Transform UpRay; 	// casting a ray from the bottom of the ship
 	public Transform FrontRay; 	// casting a ray toward the front of the ship
 	public Transform LeftRay;  // casting a ray right of the ship
-	
+	*/
+
 	public float yaw = 0.0f;
 	public float pitch = 0.0f;
 	public float roll = 0.0f;
 	public float thrust = 0.0f;
 	
-	public bool killRotation = false;
+	bool killRotation = false;
 
 	public Rigidbody satelliteBody;
 
 	public Vector3 startPosition;
+	public Vector3 startVelocity;
 
 
 	#endregion
-	
+
+
 	// Start - used for initilization at the start of the simulation
 	void Start () {
 		satelliteBody = GetComponent<Rigidbody> ();
-		satelliteBody.maxAngularVelocity = 50;
+		satelliteBody.maxAngularVelocity = 30;
 		startPosition = transform.position;
-		satelliteBody.AddForce (0, 0, 94.3f, ForceMode.VelocityChange);
-
+		satelliteBody.AddForce (startVelocity, ForceMode.VelocityChange);
 		//satelliteBody.AddTorque (new Vector3 (.000f, yaw, 0.0001f) * satelliteBody.mass);
 	}
 	
@@ -43,12 +51,9 @@ public class shipBehavior : MonoBehaviour {
 		ChangeTimeScale ();
 		KillShipRotation ();
 
-		//Debug.Log (Vector3.Angle(startPosition, transform.position));
 		//Debug.Log (transform.position);
-		//Debug.DrawRay(transform.position, UpRay.position - transform.position, Color.blue); // DEBUG
-		//Debug.DrawRay(transform.position, FrontRay.position - transform.position, Color.blue); // DEBUG
-		//Debug.DrawRay(transform.position, LeftRay.position - transform.position, Color.blue); // DEBUG
-		//Debug.DrawRay (transform.position, transform.forward, Color.blue);
+		//Debug.Log (Vector3.Angle(startPosition, transform.position));
+		//Debug.Log(satelliteBody.velocity.magnitude);
 	}
 	
 	// FixedUpdate - called every fixed framerate or every physics step, eliminates error from gravity calculations
@@ -62,9 +67,10 @@ public class shipBehavior : MonoBehaviour {
 	void ApplyGravity () {
 		// Calculate the gravitation force using Newton's Law of Universal Gravitation Gmm/(d^2)
 		// NOTE: since ship mass is so small it is negligible, therefore the second m is ignored
-		float grav = ((GRAVITATIONAL_CONSTANT * planet.GetComponent<Rigidbody>().mass) / gameObject.transform.position.sqrMagnitude);
+		double gravTemp = ((GRAVITATIONAL_CONSTANT * EARTH_MASS) / (double)transform.position.sqrMagnitude);
+		float grav = (float)gravTemp;
 		
-		Vector3 gravityVector = GetComponent<Rigidbody> ().position.normalized * -grav; // normalize the position vector of the ship then apply grav
+		Vector3 gravityVector = satelliteBody.position.normalized * -grav;  // normalize the position vector of the ship then apply grav
 		satelliteBody.AddForce (gravityVector, ForceMode.Acceleration); 	// add the new force to the ship as an acceleration
 	}
 	
@@ -85,15 +91,14 @@ public class shipBehavior : MonoBehaviour {
 				Time.timeScale /= 2.0f;
 		}
 	}
-
-	//********************************UNFINISHED NOT WORKING CORRECTLY****************************************
+	
 	// ChangeShipOrientation - Handles the controls for rotation the ships yaw, pitch, and roll
 	void ChangeShipOrientation () {
 
 		//satelliteBody.centerOfMass = transform.position;
 		//Debug.Log (satelliteBody.centerOfMass);
 
-		float changeYPR = 0.5f;
+		float changeYPR = 20f;
 		yaw = 0.0f;
 		pitch = 0.0f;
 		roll = 0.0f;
@@ -143,7 +148,7 @@ public class shipBehavior : MonoBehaviour {
 	// KillShipRotation - eliminates the current torque on the ship to stabilize the ship
 	public void KillShipRotation()
 	{
-		float dampenSpeed = .98f;
+		float dampenSpeed = .985f;
 		float stillShip = .005f;
 		if (Input.GetKey (KeyCode.T) && !killRotation)
 			killRotation = true;
@@ -151,25 +156,43 @@ public class shipBehavior : MonoBehaviour {
 		if (killRotation) {
 			satelliteBody.angularVelocity *= dampenSpeed;
 
-			if (satelliteBody.angularVelocity.magnitude < stillShip){
+			if (Mathf.Abs(satelliteBody.angularVelocity.magnitude) < stillShip){
 				satelliteBody.angularVelocity = Vector3.zero;
 				killRotation = false;
 			}
 		}
 
-		Debug.Log (satelliteBody.angularVelocity.magnitude);
+		// Debug.Log (satelliteBody.angularVelocity.magnitude); // USED FOR DEBUG
 	}
 
-	//********************************UNFINISHED NOT WORKING CORRECTLY****************************************//
+	// flameOn - toggle the particle systems
+	void flameOn () {
+		rightBoost.Play ();
+		leftBoost.Play ();
+		topBoost.Play ();
+	}
+
+	// flameOff - toggle the particle systems
+	void flameOff () {
+		rightBoost.Stop ();
+		leftBoost.Stop ();
+		topBoost.Stop ();
+	}
+
+	
 	// AddSatelliteVelocity - Adds velocity directly forward from the front of the satellite
 	public void AddSatelliteVelocity()
 	{
 		float thrustIncrease = .01f;
+		if (Input.GetKeyDown (KeyCode.H))
+			flameOn ();
 
 		if (Input.GetKey (KeyCode.H))
 			thrust += thrustIncrease;
-		else
+		else {
 			thrust = 0.0f;
+			flameOff ();
+		}
 
 		satelliteBody.AddForce (-transform.forward * thrust * Time.deltaTime, ForceMode.VelocityChange);
 	}

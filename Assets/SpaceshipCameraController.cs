@@ -7,7 +7,7 @@ public class SpaceshipCameraController : MonoBehaviour {
 	
 	public float defTheta = Mathf.PI / 2;   // Default value of theta.
 	public float defPsy = 0.5f;				// Default value of psy.
-	public float defRadius = 2f;			// Default radius from ship.
+	public float defRadius = 30f;			// Default radius from ship.
 	
 	public float theta;  					// Radians around y-axis (horizontal).
 	public float psy;	 					// Radians around x-axis (vertical).
@@ -15,10 +15,10 @@ public class SpaceshipCameraController : MonoBehaviour {
 	public float shipRadius;				// Player preferred distance from ship.
 	public float shipPsy;					// Player preferred psy. Currently not adjustable.
 	
-	public const float PSYMAX = (Mathf.PI / 2) - 0.1f; // Maximum value for psy. Camera inverts at Pi/2+.
-	public const float PSYMIN = -(Mathf.PI / 2) + 0.1f;					   // Minimum value for psy.
-	public const float RADMIN = 1f;					   // Minimum distance from ship
-	public const float RADMAX = 5f;
+	public const float PSYMAX = (Mathf.PI / 2) - 0.1f; 		// Maximum value for psy. Camera inverts at Pi/2+.
+	public const float PSYMIN = -(Mathf.PI / 2) + 0.1f;		// Minimum value for psy.
+	public const float RADMIN = 35f;					    // Minimum distance from ship
+	public const float RADMAX = 500f;
 	
 	public float keyboardSensitivity; 	// Keyboard sensitivity.
 	
@@ -35,9 +35,10 @@ public class SpaceshipCameraController : MonoBehaviour {
 	void Update () {
 		CameraControls ();
 
+		float cameraPos = transform.position.magnitude - spaceShip.position.magnitude;
 		// Allows zooming in and out.
 		if(Input.GetAxis("Mouse ScrollWheel") != 0) {
-			radius -= Input.GetAxis("Mouse ScrollWheel");
+			radius -= Input.GetAxis("Mouse ScrollWheel") * .005f * Mathf.Pow(cameraPos, 2);
 			shipRadius = radius;	// Changes player preferred radius
 		} 
 
