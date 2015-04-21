@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\CameraController.cs" />
+     <Compile Include="Assets\MainHUD.cs" />
      <Compile Include="Assets\PlanetController.cs" />
      <Compile Include="Assets\SpaceshipCameraController.cs" />
      <Compile Include="Assets\shipBehavior.cs" />
