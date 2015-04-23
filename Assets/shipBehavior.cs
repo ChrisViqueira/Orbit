@@ -4,31 +4,43 @@ using System.Collections;
 public class shipBehavior : MonoBehaviour {
 	
 	#region VARIABLES
+
+	public dummyShip dummyScript;
+
+	public bool settingPrograde = false;
+	//bool moveIsCalled = false;
 	
 	double GRAVITATIONAL_CONSTANT = 6.67384 * Mathf.Pow (10, -11);
 	double EARTH_MASS = 5.972 * Mathf.Pow (10, 15);
 	double SHIP_MASS = 1.1 * Mathf.Pow (10, 5);
 
+	public float PLANET_RADIUS = 6371f;	// measured in km
+	
+	//main thrust
 	public ParticleSystem leftBoost;
 	public ParticleSystem rightBoost;
 	public ParticleSystem topBoost;
 
-	/*
-	public Transform planet;
-	
-	public Transform UpRay; 	// casting a ray from the bottom of the ship
-	public Transform FrontRay; 	// casting a ray toward the front of the ship
-	public Transform LeftRay;  // casting a ray right of the ship
-	*/
+	// vectors to various points
+	public LineRenderer periLine;
+	public LineRenderer apoLine;
+	public LineRenderer ASCLine;
+	public LineRenderer DESCLine;
 
 	public float yaw = 0.0f;
 	public float pitch = 0.0f;
 	public float roll = 0.0f;
-	public float thrust = 0.0f;
+	public float thrust;
+	public float thrustTrans;
 	
 	bool killRotation = false;
 
+	// for setting prograde
+	//bool isPrograde = true;
+	//float setProSpeed = .1f;
+
 	public Rigidbody satelliteBody;
+	public Rigidbody planet;
 
 	public Vector3 startPosition;
 	public Vector3 startVelocity;
@@ -36,28 +48,44 @@ public class shipBehavior : MonoBehaviour {
 	int[] warpScale;
 	int warpPtr;
 
+	Transform shipform;
+
 
 	#endregion
 
 
 	#region KEPLARIAN ELEMENTS
 
+	Vector3 transDir;
 	Vector3 angMomentum;			// orbital angular momentum of the ship around the planet
-	Vector3 ASCNodeVector;			// vector pointing towards the ascending node
-	Vector3 eccentricityVector;		// describes the shape of the orbit
-	Vector3 referenceVector;		// unit vector (0, 0, 1)
+	public Vector3 ASCNodeVector;			// vector pointing towards the ascending node
+	public Vector3 eccentricityVector;		// describes the shape of the orbit
+	//Vector3 referenceVector;		// unit vector (0, 0, 1)
 
 	double SGP;						// standard gravitational parameter
 	double ME;						// specific mechanical energy
-	float periapsis;				// height of the lowest point in orbit
-	float apoapsis;					// height of the highest point in orbit
-	float eccentricity;				// magnitude of the eccentricity vector
-	float semiMajorAxis;			// half of the major axis
+	float eccentricAnomaly;			// position along an elliptical orbit relative to circular orbit
+	float meanAnomaly;				// relates position and time in a keplarian orbit
+	float deltaAnomaly;				// the change in mean anomaly
+	float parabolicAnomaly;
+	float meanMotion;				// mean motion
+	public float time2Apoapsis;			// time 2 apoapsis
+	public float time2Periapsis;			// time to periapsis
+	//float tempT2P;
+	public float timeSincePeriapsis;
+	public float orbitalPeriod;			// time to make a complete orbit
+	public float periapsis;			// height of the lowest point in orbit
+	public float apoapsis;			// height of the highest point in orbit
+	public float eccentricity;		// magnitude of the eccentricity vector
+	public float semiMajorAxis;			// half of the major axis
 	float semiLatusRectum;			// half the chord through focus, perpendicular to the semi major axis
-	float inclination = 0;				// angle between satellite orbital plane and equitorial plane
+	public float semiMinorAxis;			// half of minor axis
+	public float inclination;	// angle between satellite orbital plane and equitorial plane
 	float longitudeAscNode;			// angle between ship starting position and node vector
+	//public float ASCNodeMag;				//magnitude of the asc node vector
+	//public float DESCNodeMag;				// magnitude of desc node vector
 	float argPeriapsis;				// angle between ASCNodeVector and periapsis vector
-	float trueAnomaly;				// angle between periapsis vector and position vector
+	public float trueAnomaly;		// angle between periapsis vector and position vector
 									// NOTE: true anomaly measured in direction of the travel
 
 	#endregion
@@ -66,8 +94,9 @@ public class shipBehavior : MonoBehaviour {
 	// Start - used for initilization at the start of the simulation
 	void Start () {
 		satelliteBody = GetComponent<Rigidbody> ();
+		shipform = transform;
 		satelliteBody.maxAngularVelocity = 30;
-		startPosition = transform.position;
+		startPosition = new Vector3(6771, 0, 0);
 		satelliteBody.AddForce (startVelocity, ForceMode.VelocityChange);
 
 		warpScale = new int[6];
@@ -79,88 +108,65 @@ public class shipBehavior : MonoBehaviour {
 		warpScale [4] = 50;
 		warpScale [5] = 100;
 
-		/*Debug.Log ("pos mag: " + satelliteBody.position.magnitude);
-		Debug.Log ("vel mag: " + startVelocity.magnitude);
-		Debug.Log ("pos vec: " + satelliteBody.position);
-		Debug.Log ("vel vec: " + startVelocity);
-		*/
-
-		initKeplarianElements ();
+		// setting the reference direction
+		//referenceVector = new Vector3 (1, 0, 0);
+		
+		// initalizting mu or the standard gravitational parameter
+		SGP = GRAVITATIONAL_CONSTANT * (EARTH_MASS + SHIP_MASS);
 	}
 	
 	// Update - Called every frame
 	void Update () {
 		ChangeTimeScale ();
-		KillShipRotation ();
+		getKeplarianElements ();
+		drawKeplarianElements ();
 
-		//debug
+		if (Input.GetKeyDown (KeyCode.R)) {
+			resetSimulation ();
+		}
 
-		//getEccentricity (); 							// eccentricity works
-		Debug.Log ("eccentricity: " + eccentricity);
-		Debug.Log ("eccentricity vec: " + eccentricityVector);
-
-		//getMechanicalEnergy ();						// ME works
-		//Debug.Log (ME);
-
-		//getSemiMajorAxis ();							// SMA works
-		//Debug.Log ("sma: " + semiMajorAxis);
-
-		getTrueAnomaly ();
-		Debug.Log ("true anomaly: " + trueAnomaly);
-
-		//getASCNodeLong ();							// ascnodelong works
-		//Debug.Log ("ASCnode Vector: " + ASCNodeVector);
-		//Debug.DrawRay (new Vector3 (0, 0, 0), ASCNodeVector, Color.blue, Mathf.Infinity);
-		//Debug.Log ("ASCnodelong: " + longitudeAscNode);
-
-		//getPeriapsis ();								// periapsis works
-		//Debug.Log ("periapsis: " + periapsis);
-
-		//getApoapsis ();								//apoapsis works
-		//Debug.Log ("apoapsis: " + apoapsis);
-
-		//getArgPeriapsis ();							// arg of periapsis work (we think, little testing done)
-		//Debug.Log ("arg of periapsis: " + argPeriapsis);
-	
-		//getInclination ();								// inclination works
-		//Debug.Log ("inclincation: " + inclination);
-		//Debug.Log (angMomentum.y);
-		//Debug.Log (angMomentum.magnitude);
-
-		//getAngularMomentum ();							// angular momentum Works kinda
-		//Debug.Log ("ang momentum: " + angMomentum);
-		//Debug.Log ("y: " + angMomentum.y);
-		//Debug.Log ("magnitude: " + angMomentum.magnitude);
-
-		//Debug.Log ("x: " + satelliteBody.velocity.x);
-		//Debug.Log ("y: " + satelliteBody.velocity.y);
-		//Debug.Log ("z: " + satelliteBody.velocity.z);
-
-		//Debug.Log ("x: " + satelliteBody.centerOfMass.x);
-		//Debug.Log ("y: " + satelliteBody.centerOfMass.y);
-		//Debug.Log ("z: " + satelliteBody.centerOfMass.z);
-		//Debug.Log ("magnitude: " + satelliteBody.centerOfMass.magnitude);
-
-		//Debug.Log ("x: " + satelliteBody.angularVelocity.x);
-		//Debug.Log ("y: " + satelliteBody.angularVelocity.y);
-		//Debug.Log ("z: " + satelliteBody.angularVelocity.z);
-
-		//debug end
+		Debug.Log ("velocity norm: " + satelliteBody.velocity.normalized);
+		Debug.Log ("ship forward norm: " + -shipform.forward.normalized);
 
 	}
 	
 	// FixedUpdate - called every fixed framerate or every physics step, eliminates error from gravity calculations
 	void FixedUpdate () {
 		ApplyGravity ();
-		ChangeShipOrientation ();
-		AddSatelliteVelocity ();
+
+		if (Time.timeScale == 1) { // if in time warp, put ship on rails, eliminates a lot of lag
+			rotateShip ();
+			moveShip ();
+
+		}
 	}
-	
+
+	void rotateShip () {
+		/*
+		if (Input.GetKeyDown (KeyCode.P) && isPrograde) { //set to prograde
+			satelliteBody.angularVelocity = Vector3.zero;
+			isPrograde = false;
+		}
+		if (!isPrograde && !settingPrograde) {
+			StartCoroutine ("setPrograde");
+			Debug.Log ("called set prograde");
+		}
+		*/
+
+		ChangeShipOrientation ();
+		KillShipRotation ();
+	}
+
+	void moveShip () {
+		AddSatelliteVelocity ();
+		translateSatellite ();
+	}
+
 	// ApplyGravity - calculates the force of gravity then applies the force as an acceleration to the ship
 	void ApplyGravity () {
 		// Calculate the gravitation force using Newton's Law of Universal Gravitation Gmm/(d^2)
 		// NOTE: since ship mass is so small it is negligible, therefore the second m is ignored
-		double gravTemp = ((GRAVITATIONAL_CONSTANT * EARTH_MASS) / (double)transform.position.sqrMagnitude);
+		double gravTemp = ((GRAVITATIONAL_CONSTANT * EARTH_MASS) / (double)shipform.position.sqrMagnitude);
 		float grav = (float)gravTemp;
 		
 		Vector3 gravityVector = satelliteBody.position.normalized * -grav;  // normalize the position vector of the ship then apply grav
@@ -184,7 +190,7 @@ public class shipBehavior : MonoBehaviour {
 	// ChangeShipOrientation - Handles the controls for rotation the ships yaw, pitch, and roll
 	void ChangeShipOrientation () {
 
-		float changeYPR = 20f;
+		float changeYPR = .1f;
 		yaw = 0.0f;
 		pitch = 0.0f;
 		roll = 0.0f;
@@ -222,51 +228,152 @@ public class shipBehavior : MonoBehaviour {
 				killRotation = false;
 			}
 		}
-
-		// Debug.Log (satelliteBody.angularVelocity.magnitude); // USED FOR DEBUG
 	}
 
-	// flameOn - toggle the particle systems
-	void flameOn () {
+
+	#region TOGGLE FLAMES
+
+	// mainThrustOn - toggle the particle systems
+	void mainThrustOn () {
 		rightBoost.Play ();
 		leftBoost.Play ();
 		topBoost.Play ();
 	}
 
-	// flameOff - toggle the particle systems
-	void flameOff () {
+	// mainThrustOff - toggle the particle systems
+	void mainThrustOff () {
 		rightBoost.Stop ();
 		leftBoost.Stop ();
 		topBoost.Stop ();
 	}
+	
+
+	#endregion
 
 	
 	// AddSatelliteVelocity - Adds velocity directly forward from the front of the satellite
 	public void AddSatelliteVelocity()
 	{
-		float thrustIncrease = .01f;
-		if (Input.GetKeyDown (KeyCode.H))
-			flameOn ();
+		if (Input.GetKeyDown (KeyCode.Z))
+			mainThrustOn ();
 
-		if (Input.GetKey (KeyCode.H))
-			thrust += thrustIncrease;
+		if (Input.GetKey (KeyCode.Z)) {
+			satelliteBody.AddForce (-shipform.forward * thrust * Time.deltaTime, ForceMode.VelocityChange);
+		}
 		else {
-			thrust = 0.0f;
-			flameOff ();
+			mainThrustOff ();
+		}
+	}
+
+	/*************************************************************************************/
+
+	public void translateSatellite () {
+		transDir = Vector3.zero;
+
+		////////////////////////Movement//////////////////////////
+
+		if (Input.GetKey (KeyCode.K)) {	// translate up
+			transDir = shipform.up;
+		}
+		if (Input.GetKey (KeyCode.I)) { // translate down
+			transDir = -shipform.up;
+		}
+		if (Input.GetKey (KeyCode.J)) { // translate left
+			transDir = shipform.right;
+		}
+		if (Input.GetKey (KeyCode.L)) { // translate right
+			transDir = -shipform.right;
+		}
+		if (Input.GetKey (KeyCode.H)) { // translate forward
+			transDir = -shipform.forward;
+		}
+		if (Input.GetKey (KeyCode.N)) { // translate back
+			transDir = shipform.forward;
 		}
 
-		satelliteBody.AddForce (-transform.forward * thrust * Time.deltaTime, ForceMode.VelocityChange);
+		////////////////////////////////////////////////////////////
+
+		satelliteBody.AddForce (transDir * thrustTrans * Time.deltaTime, ForceMode.VelocityChange);
+
+	}
+
+	// sets the ship in the direction of the velocity vector
+	/*public IEnumerator setPrograde() {
+		settingPrograde = true;
+		Quaternion shipTrans = shipform.rotation;
+		Quaternion endRot = Quaternion.FromToRotation(shipform.forward, satelliteBody.velocity);
+
+		//Vector3 endEuler = endRot.eulerAngles;
+		//endEuler.z = 0;
+		//endRot = Quaternion.Euler (endEuler);
+
+		for (int x = 0; x < 1000; x++) {
+
+			if (x < 400)
+				x++;
+
+			shipform.rotation = Quaternion.Lerp(shipTrans, endRot, x/1000.0f);
+			yield return new WaitForFixedUpdate();
+		}
+
+		isPrograde = true;
+		settingPrograde = false;
+	
+	}*/
+
+	// resets the simulation to the original starting values of a (basically) circular orbit
+	public void resetSimulation () {
+
+		dummyScript.dummyCanvas.enabled = true;
+		dummyScript.gameObject.SetActive (true);
+
+		satelliteBody.rotation = new Quaternion (0, 1, 0, 0);
+		satelliteBody.velocity = Vector3.zero;
+		satelliteBody.angularVelocity = Vector3.zero;
+		satelliteBody.position = startPosition;
+
+		dummyScript.satelliteBod.velocity = Vector3.zero;
+		dummyScript.satelliteBod.angularVelocity = Vector3.zero;
+		dummyScript.satelliteBod.position = dummyScript.startPos;
+
+		angMomentum = Vector3.zero;
+		ASCNodeVector = Vector3.zero;
+		eccentricityVector = Vector3.zero;
+		//referenceVector = Vector3.zero
+		
+		SGP = 0;						
+		ME = 0;						
+		eccentricAnomaly = 0.0f;
+		meanAnomaly = 0.0f;			
+		deltaAnomaly = 0.0f;				
+		parabolicAnomaly = 0.0f;
+		meanMotion = 0.0f;				
+		time2Apoapsis = 0.0f;			
+		time2Periapsis = 0.0f;			
+		//tempT2P = 0.0f;
+		timeSincePeriapsis = 0.0f;
+		orbitalPeriod = 0.0f;			
+		periapsis = 0.0f;			
+		apoapsis = 0.0f;			
+		eccentricity = 0.0f;		
+		semiMajorAxis = 0.0f;			
+		semiLatusRectum = 0.0f;			
+		inclination = 0.0f;	
+		longitudeAscNode = 0.0f;			
+		argPeriapsis = 0.0f;				
+		trueAnomaly = 0.0f;
+		semiMinorAxis = 0.0f;
+		//ASCNodeMag = 0.0f;
+		//DESCNodeMag = 0.0f;
+
+		Start ();
+		dummyScript.dummyBegin ();
 	}
 
 	/***************************CHECK ALL OF THESE FUNCTIONS********************************/
 	#region KEPLARIAN FUNCTIONS
 
-	void initKeplarianElements() {
-		// setting the reference direction
-		referenceVector = new Vector3 (1, 0, 0);
-
-		// initalizting mu or the standard gravitational parameter
-		SGP = GRAVITATIONAL_CONSTANT * (EARTH_MASS + SHIP_MASS);
+	void getKeplarianElements() {
 
 		// init angular momentum
 		getAngularMomentum ();
@@ -283,6 +390,9 @@ public class shipBehavior : MonoBehaviour {
 		// init semiMajorAxis
 		getSemiMajorAxis ();
 
+		// init semiMinorAxis
+		getSemiMinorAxis ();
+
 		// init semiLatusRectum
 		getSemiLatusRectum ();
 
@@ -297,132 +407,238 @@ public class shipBehavior : MonoBehaviour {
 
 		// init true anomaly
 		getTrueAnomaly ();
-	}
 
-	// Calculates the orbital angular momentum of the satellite around the planet
-	void getAngularMomentum () {
-		angMomentum = Vector3.Cross (satelliteBody.position, satelliteBody.velocity);
-	}
+		// init eccentric anomaly
+		getEccentricAnomaly ();
 
-	// Calculates the eccentricity (shape of the orbit)
-	// NOTE: e = 0, perfect circle; 0 < e < 1, ellipse; e = 1, parabola; e > 1, hyperbola
-	void getEccentricity () {
-		float shipVel = satelliteBody.velocity.magnitude;
-		float shipAlt = satelliteBody.position.magnitude;
+		// init mean anomaly
+		getMeanAnomaly ();
 
-		eccentricityVector = ((satelliteBody.position * ((shipVel * shipVel) - (float)(SGP / (double)shipAlt))) -
-		        (satelliteBody.velocity * (Vector3.Dot(satelliteBody.position, satelliteBody.velocity)))) / (float)SGP;
-		eccentricity = eccentricityVector.magnitude;
-	}
+		//init get true anomaly
+		getParabolicAnomaly ();
 
-	void getMechanicalEnergy () {
-		ME = ((satelliteBody.velocity.magnitude * satelliteBody.velocity.magnitude) / 2) -
-			(float)(SGP / (double)satelliteBody.position.magnitude);
-	}
+		// init mean motion
+		getMeanMotion ();
 
-	void getASCNodeVector () {
-		getAngularMomentum ();
-		//Debug.Log ("ang momentum: " + angMomentum);
-		//Debug.Log ("ref vec: " + referenceVector);
-		//ASCNodeVector = Vector3.Cross (referenceVector, angMomentum);
-		ASCNodeVector = new Vector3 (angMomentum.z, 0, -angMomentum.x);
-	}
+		// init time to apoapsis
+		getTime2Apoapsis ();
 
-	void getSemiMajorAxis () {
-		getEccentricity ();
-		getMechanicalEnergy ();
+		// init orbital period
+		getOrbitalPeriod ();
 
-		if (eccentricity < 1f)
-			semiMajorAxis = -(float)(SGP / (double)(2 * ME));
-		else
-			semiMajorAxis = Mathf.Infinity;
-	}
+		// init time since periapsis
+		getTimeSincePeriapsis ();
 
-	void getSemiLatusRectum () {
-		getSemiMajorAxis ();
-		getAngularMomentum ();
+		// init time to periapsis
+		getTime2Periapsis ();
 
-		if (eccentricity < 1)
-			semiLatusRectum = semiMajorAxis * (1 - (eccentricity * eccentricity));
-		else
-			semiLatusRectum = (float)((double)(angMomentum.magnitude * angMomentum.magnitude) / SGP);
-	}
-
-	void getInclination () {
-		getAngularMomentum ();
-		//NOTE: uses the z component in a normal coordinate system
-		inclination = Mathf.Acos(Mathf.Abs(angMomentum.y / angMomentum.magnitude));
-		//inclination = Mathf.PI - inclination; // making it normal to a RH coordinate system
-		inclination = inclination * Mathf.Rad2Deg;
-
-	}
-
-	void getASCNodeLong () {
-		getASCNodeVector ();
-		//Debug.Log ("ASCNodeVector: " + ASCNodeVector);
-		//Debug.Log ("ASCNodeVec x: " + ASCNodeVector.x);
-
-		if (ASCNodeVector.z >= 0f)
-			longitudeAscNode = Mathf.Acos (ASCNodeVector.x / ASCNodeVector.magnitude);	
-		else
-			longitudeAscNode = (Mathf.PI * 2) - Mathf.Acos (ASCNodeVector.x / ASCNodeVector.magnitude);
-
-		longitudeAscNode = (longitudeAscNode * Mathf.Rad2Deg);
-
-	}
-
-	void getArgPeriapsis () {
-		getASCNodeVector ();
-		getEccentricity ();
-
-		argPeriapsis = Mathf.Acos ((Vector3.Dot (ASCNodeVector, eccentricityVector)) / 
-			(ASCNodeVector.magnitude * eccentricityVector.magnitude));
-
-		if (eccentricityVector.y < 0) {
-			argPeriapsis = (Mathf.PI * 2) - argPeriapsis;
-		}
-
-		argPeriapsis = argPeriapsis * Mathf.Rad2Deg;
-	}
-
-	void getTrueAnomaly () {
-		getEccentricity ();
-
-		trueAnomaly = (Mathf.Acos ((Vector3.Dot (eccentricityVector, satelliteBody.position)) /
-			(eccentricityVector.magnitude * satelliteBody.position.magnitude)));
-
-		if (Vector3.Dot (satelliteBody.position, satelliteBody.velocity) < 0)
-			trueAnomaly = (Mathf.PI * 2) - trueAnomaly;
-
-		trueAnomaly = trueAnomaly * Mathf.Rad2Deg;
-	}
-
-	void getPeriapsis () {
-		getSemiMajorAxis ();
-		getEccentricity ();
-		float tempSMA;
-		if (eccentricity >= 1) {
-			tempSMA = -(float)(SGP / (double)(2 * ME));
-			periapsis = tempSMA * (1 - eccentricity); 
-		}
-		else
-			periapsis = semiMajorAxis * (1 - eccentricity);
-	}
-
-	void getApoapsis () {
-		getSemiMajorAxis ();
+		// init periapsis
 		getPeriapsis ();
 
-		apoapsis = (2 * semiMajorAxis) - periapsis;
+		// init apoapsis;
+		getApoapsis ();
+
+		//init nodemag
+		//getNodeMag ();
 	}
+
+	#region DRAW KEPLARIAN ELEMENTS
+
+	void drawKeplarianElements () {
+		periLine.SetPosition (1, eccentricityVector.normalized * periapsis);
+		apoLine.SetPosition (1, eccentricityVector.normalized * -apoapsis);
+		ASCLine.SetPosition (1, ASCNodeVector.normalized * 8000);
+		DESCLine.SetPosition (1, -ASCNodeVector.normalized * 8000);
+		//Debug.Log (ASCNodeVector.magnitude);
+	}
+
+	#endregion
+
+
+		#region GET KEPLARIAN ELEMENTS
+
+		// Calculates the orbital angular momentum of the satellite around the planet
+		void getAngularMomentum () {
+			angMomentum = Vector3.Cross (satelliteBody.position, satelliteBody.velocity);
+		}
+
+		// Calculates the eccentricity (shape of the orbit)
+		// NOTE: e = 0, perfect circle; 0 < e < 1, ellipse; e = 1, parabola; e > 1, hyperbola
+		void getEccentricity () {
+			float shipVel = satelliteBody.velocity.magnitude;
+			float shipAlt = satelliteBody.position.magnitude;
+
+			eccentricityVector = ((satelliteBody.position * ((shipVel * shipVel) - (float)(SGP / (double)shipAlt))) -
+			        (satelliteBody.velocity * (Vector3.Dot(satelliteBody.position, satelliteBody.velocity)))) / (float)SGP;
+			eccentricity = eccentricityVector.magnitude;
+		}
+
+		void getMechanicalEnergy () {
+			ME = ((satelliteBody.velocity.magnitude * satelliteBody.velocity.magnitude) / 2) -
+				(float)(SGP / (double)satelliteBody.position.magnitude);
+		}
+
+		void getASCNodeVector () {
+			//getAngularMomentum ();
+			//Debug.Log ("ang momentum: " + angMomentum);
+			//Debug.Log ("ref vec: " + referenceVector);
+			//ASCNodeVector = Vector3.Cross (referenceVector, angMomentum);
+			ASCNodeVector = new Vector3 (angMomentum.z, 0, -angMomentum.x);
+		}
+
+		void getSemiMajorAxis () {
+			//getEccentricity ();
+			//getMechanicalEnergy ();
+
+			if (eccentricity < 1f)
+				semiMajorAxis = -(float)(SGP / (double)(2 * ME));
+			else
+				semiMajorAxis = Mathf.Infinity;
+		}
+
+		void getSemiLatusRectum () {
+			//getSemiMajorAxis ();
+			//getAngularMomentum ();
+
+			if (eccentricity < 1)
+				semiLatusRectum = semiMajorAxis * (1 - (eccentricity * eccentricity));
+			else
+				semiLatusRectum = (float)((double)(angMomentum.magnitude * angMomentum.magnitude) / SGP);
+		}
+
+		void getInclination () {
+			//getAngularMomentum ();
+			//NOTE: uses the z component in a normal coordinate system
+			inclination = Mathf.Acos(Mathf.Abs(angMomentum.y / angMomentum.magnitude));
+			//inclination = Mathf.PI - inclination; // making it normal to a RH coordinate system
+			inclination = inclination * Mathf.Rad2Deg;
+
+		}
+
+		void getASCNodeLong () {
+			//getASCNodeVector ();
+			//Debug.Log ("ASCNodeVector: " + ASCNodeVector);
+			//Debug.Log ("ASCNodeVec x: " + ASCNodeVector.x);
+
+			if (ASCNodeVector.z >= 0f)
+				longitudeAscNode = Mathf.Acos (ASCNodeVector.x / ASCNodeVector.magnitude);	
+			else
+				longitudeAscNode = (Mathf.PI * 2) - Mathf.Acos (ASCNodeVector.x / ASCNodeVector.magnitude);
+
+			longitudeAscNode = (longitudeAscNode * Mathf.Rad2Deg);
+
+		}
+
+		void getArgPeriapsis () {
+			//getASCNodeVector ();
+			//getEccentricity ();
+
+			argPeriapsis = Mathf.Acos ((Vector3.Dot (ASCNodeVector, eccentricityVector)) / 
+				(ASCNodeVector.magnitude * eccentricityVector.magnitude));
+
+			if (eccentricityVector.y < 0) {
+				argPeriapsis = (Mathf.PI * 2) - argPeriapsis;
+			}
+
+			//argPeriapsis = argPeriapsis * Mathf.Rad2Deg;
+		}
+
+		void getTrueAnomaly () {
+			//getEccentricity ();
+
+			trueAnomaly = (Mathf.Acos ((Vector3.Dot (eccentricityVector, satelliteBody.position)) /
+				(eccentricityVector.magnitude * satelliteBody.position.magnitude)));
+
+			if (Vector3.Dot (satelliteBody.position, satelliteBody.velocity) < 0)
+				trueAnomaly = (Mathf.PI * 2) - trueAnomaly;
+
+			trueAnomaly = trueAnomaly * Mathf.Rad2Deg;
+		}
+
+		void getPeriapsis () {
+			//getSemiMajorAxis ();
+			//getEccentricity ();
+			float tempSMA;
+			if (eccentricity >= 1) {
+				tempSMA = -(float)(SGP / (double)(2 * ME));
+				periapsis = tempSMA * (1 - eccentricity); 
+			}
+			else
+				periapsis = semiMajorAxis * (1 - eccentricity);
+		}
+
+		void getApoapsis () {
+			//getSemiMajorAxis ();
+			//getPeriapsis ();
+			apoapsis = (2 * semiMajorAxis) - periapsis;
+		}
+
+		void getEccentricAnomaly () {
+			eccentricAnomaly = 2 * Mathf.Atan (Mathf.Sqrt ((1 - eccentricity) / (1 + eccentricity)) * 
+				Mathf.Tan ((trueAnomaly * Mathf.Deg2Rad) / 2));
+		}
+
+		void getMeanAnomaly () {
+			meanAnomaly = eccentricAnomaly - (eccentricity * Mathf.Sin (eccentricAnomaly));
+			deltaAnomaly = Mathf.PI - meanAnomaly;
+		}
+
+		void getParabolicAnomaly () {
+			parabolicAnomaly = Mathf.Tan (trueAnomaly / 2);
+		}
+
+		void getMeanMotion () {
+			meanMotion = Mathf.Sqrt ((float)(SGP / Mathf.Pow (semiMajorAxis, 3)));
+		}
+
+		void getTime2Apoapsis () {
+			time2Apoapsis = deltaAnomaly / meanMotion;
+		}
+
+		void getOrbitalPeriod () {
+			orbitalPeriod = 2 * Mathf.PI * Mathf.Sqrt ((float)((double)Mathf.Pow (semiMajorAxis, 3) / SGP));
+			
+		}
+
+		void getTime2Periapsis () {
+			if (meanAnomaly > 0)
+				time2Periapsis = orbitalPeriod - timeSincePeriapsis;
+			else
+				time2Periapsis = (timeSincePeriapsis * -1);
+		}
+
+		void getTimeSincePeriapsis () {
+
+			if (eccentricity >= 1) 
+				timeSincePeriapsis = .5f * Mathf.Sqrt((float)((double) Mathf.Pow(semiLatusRectum, 3) / SGP)) *
+					(parabolicAnomaly + (Mathf.Pow(parabolicAnomaly, 3) / 3));
+			else
+				timeSincePeriapsis = Mathf.Sqrt ((float)((double)Mathf.Pow (semiMajorAxis, 3) / SGP)) * meanAnomaly;
+
+		}
+
+	void getSemiMinorAxis () {
+		semiMinorAxis = semiMajorAxis * Mathf.Sqrt (1 - (eccentricity * eccentricity));
+	}
+
+	/*void getNodeMag () {
+		float theta = (2 * Mathf.PI) - argPeriapsis;
+
+		ASCNodeMag = (semiMajorAxis * semiMinorAxis) / 
+			(Mathf.Sqrt ( ( (semiMajorAxis * semiMajorAxis) * Mathf.Pow (Mathf.Sin (theta), 2) ) + 
+			( (semiMinorAxis * semiMinorAxis) * Mathf.Pow (Mathf.Cos (theta), 2 ) ) ) );
+
+		DESCNodeMag = (semiMajorAxis * semiMinorAxis) / 
+			(Mathf.Sqrt ( ( (semiMajorAxis * semiMajorAxis) * Mathf.Pow (Mathf.Sin (argPeriapsis), 2) ) + 
+			( (semiMinorAxis * semiMinorAxis) * Mathf.Pow (Mathf.Cos (argPeriapsis), 2 ) ) ) );
+	}*/
+
+		#endregion
 
 	#endregion
 
 	
 } // end ship behavior
-
-
-
 
 
 

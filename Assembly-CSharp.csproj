@@ -46,11 +46,12 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\CameraController.cs" />
      <Compile Include="Assets\MainHUD.cs" />
-     <Compile Include="Assets\PlanetController.cs" />
      <Compile Include="Assets\SpaceshipCameraController.cs" />
+     <Compile Include="Assets\dummyShip.cs" />
+     <Compile Include="Assets\envCanvas.cs" />
      <Compile Include="Assets\shipBehavior.cs" />
+     <Compile Include="Assets\targetScript.cs" />
      <None Include="Assets\Standard Assets\Particles\Sources\Shaders\Particle Alpha Blend (Queue +100).shader" />
      <None Include="Assets\SatelliteModels\ISS models 2011\README.txt" />
  <Reference Include="UnityEngine.UI">

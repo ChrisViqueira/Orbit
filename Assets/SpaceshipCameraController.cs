@@ -17,7 +17,7 @@ public class SpaceshipCameraController : MonoBehaviour {
 	
 	public const float PSYMAX = (Mathf.PI / 2) - 0.1f; 		// Maximum value for psy. Camera inverts at Pi/2+.
 	public const float PSYMIN = -(Mathf.PI / 2) + 0.1f;		// Minimum value for psy.
-	public const float RADMIN = 35f;					    // Minimum distance from ship
+	public const float RADMIN = 3f;					    // Minimum distance from ship
 	public const float RADMAX = 500f;
 	
 	public float keyboardSensitivity; 	// Keyboard sensitivity.
@@ -38,7 +38,7 @@ public class SpaceshipCameraController : MonoBehaviour {
 		float cameraPos = transform.position.magnitude - spaceShip.position.magnitude;
 		// Allows zooming in and out.
 		if(Input.GetAxis("Mouse ScrollWheel") != 0) {
-			radius -= Input.GetAxis("Mouse ScrollWheel") * .005f * Mathf.Pow(cameraPos, 2);
+			radius -= Input.GetAxis("Mouse ScrollWheel") * .05f * Mathf.Pow(cameraPos, 2);
 			shipRadius = radius;	// Changes player preferred radius
 		} 
 
