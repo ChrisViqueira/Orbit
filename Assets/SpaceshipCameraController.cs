@@ -2,6 +2,8 @@
 using System.Collections;
 
 public class SpaceshipCameraController : MonoBehaviour {
+
+	public shipBehavior shipScript;
 	
 	public Transform spaceShip; // Holding the transformations of the spacecraft
 	
@@ -33,25 +35,29 @@ public class SpaceshipCameraController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		CameraControls ();
+		if (shipScript.state == shipBehavior.GameState.Start) {
+			CameraControls ();
 
-		float cameraPos = transform.position.magnitude - spaceShip.position.magnitude;
-		// Allows zooming in and out.
-		if(Input.GetAxis("Mouse ScrollWheel") != 0) {
-			radius -= Input.GetAxis("Mouse ScrollWheel") * .05f * Mathf.Pow(cameraPos, 2);
-			shipRadius = radius;	// Changes player preferred radius
-		} 
+			float cameraPos = transform.position.magnitude - spaceShip.position.magnitude;
+			// Allows zooming in and out.
+			if (Input.GetAxis ("Mouse ScrollWheel") != 0) {
+				radius -= Input.GetAxis ("Mouse ScrollWheel") * .05f * Mathf.Pow (cameraPos, 2);
+				shipRadius = radius;	// Changes player preferred radius
+			} 
 
-		if (radius < RADMIN)
-			radius = RADMIN;
-		if (radius > RADMAX)
-			radius = RADMAX;
+			if (radius < RADMIN)
+				radius = RADMIN;
+			if (radius > RADMAX)
+				radius = RADMAX;
+		}
 	}
 	
 	//
 	void LateUpdate () {
-		transform.position = GetSphericalPosition ();
-		transform.LookAt (spaceShip.position);
+		if (shipScript.state == shipBehavior.GameState.Start) {
+			transform.position = GetSphericalPosition ();
+			transform.LookAt (spaceShip.position);
+		}
 	}
 	
 	// Assigning buttons to certain camera movements

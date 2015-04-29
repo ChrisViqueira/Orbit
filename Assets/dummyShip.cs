@@ -6,9 +6,14 @@ public class dummyShip : MonoBehaviour {
 	double GRAVITATIONAL_CONSTANT = 6.67384 * Mathf.Pow (10, -11);
 	double EARTH_MASS = 5.972 * Mathf.Pow (10, 15);
 
+	public shipBehavior shipScript;
+
 	public Rigidbody satelliteBod;
 	public Rigidbody planet;
 	public Canvas dummyCanvas;
+
+	public GameObject vectors;
+	public GameObject signs;
 
 	public Transform shipForm;
 
@@ -23,13 +28,15 @@ public class dummyShip : MonoBehaviour {
 		explosion.Stop ();
 		satelliteBod = GetComponent<Rigidbody> ();
 		shipForm = transform;
-		startPos = new Vector3 (0, 0, -6771);
+		//startPos = new Vector3 (0, 0, -6771);
 		satelliteBod.AddForce (startVel, ForceMode.VelocityChange);
 	}
 
 	// Use this for initialization
 	void Start () {
-		dummyBegin ();
+		if (shipScript.state == shipBehavior.GameState.Start) {
+			dummyBegin ();
+		}
 	}
 	
 	// Update is called once per frame
@@ -38,7 +45,9 @@ public class dummyShip : MonoBehaviour {
 	}
 
 	void FixedUpdate () {
-		ApplyGravity ();
+		if (shipScript.state == shipBehavior.GameState.Start) {
+			ApplyGravity ();
+		}
 	}
 
 	// ApplyGravity - calculates the force of gravity then applies the force as an acceleration to the ship
@@ -53,10 +62,16 @@ public class dummyShip : MonoBehaviour {
 	}
 
 	void OnTriggerEnter(Collider other) {
+		explosion.gameObject.SetActive (true);
 		explosion.transform.position = gameObject.transform.position;
 		explosion.Play ();
 		dummyCanvas.enabled = false;
 		gameObject.SetActive (false);
 
+	}
+
+	void OnCollisionEnter(Collision collision) {
+		vectors.SetActive (false);
+		signs.SetActive (false);
 	}
 }

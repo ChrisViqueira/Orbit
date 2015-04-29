@@ -5,10 +5,22 @@ public class shipBehavior : MonoBehaviour {
 	
 	#region VARIABLES
 
+	public enum GameState {
+		Start,
+		Stop
+	}
+	
+	public GameState state;
+
 	public dummyShip dummyScript;
+	public restartBoxScript boxScript;
+
+	public GameObject startBox;
+	public GameObject vectors;
+	public GameObject signs;
 
 	public bool settingPrograde = false;
-	//bool moveIsCalled = false;
+	public bool resetCalled = false;
 	
 	double GRAVITATIONAL_CONSTANT = 6.67384 * Mathf.Pow (10, -11);
 	double EARTH_MASS = 5.972 * Mathf.Pow (10, 15);
@@ -96,8 +108,6 @@ public class shipBehavior : MonoBehaviour {
 		satelliteBody = GetComponent<Rigidbody> ();
 		shipform = transform;
 		satelliteBody.maxAngularVelocity = 30;
-		startPosition = new Vector3(6771, 0, 0);
-		satelliteBody.AddForce (startVelocity, ForceMode.VelocityChange);
 
 		warpScale = new int[6];
 		warpPtr = 0;
@@ -108,36 +118,81 @@ public class shipBehavior : MonoBehaviour {
 		warpScale [4] = 50;
 		warpScale [5] = 100;
 
+		//Time.timeScale = 0;
+		//startPosition = new Vector3 (6771, 0, 0);
+
 		// setting the reference direction
 		//referenceVector = new Vector3 (1, 0, 0);
 		
 		// initalizting mu or the standard gravitational parameter
 		SGP = GRAVITATIONAL_CONSTANT * (EARTH_MASS + SHIP_MASS);
+
+		mainThrustOff ();
+		//if(state == GameState.Start)
+		//	shipBegin ();
 	}
-	
+
+	public void shipBegin () {
+		//Debug.Log ("shipbegin called");
+		startPosition = new Vector3 (6771, 0, 0);
+		//Debug.Log ("b4 add force " + satelliteBody.velocity);
+		satelliteBody.AddForce (startVelocity, ForceMode.VelocityChange);
+	}
+
 	// Update - Called every frame
 	void Update () {
-		ChangeTimeScale ();
-		getKeplarianElements ();
-		drawKeplarianElements ();
+		//Debug.Log (startPosition);
+		//Debug.Log ("dummy vel " + dummyScript.satelliteBod.velocity);
+		//Debug.Log ("startvel " + startVelocity);
+		//Debug.Log ("pos " + satelliteBody.position);
+		//Debug.Log ("ship vel" + satelliteBody.velocity);
+		//Debug.Log ("ang " + angMomentum);
+		//Debug.Log ("asc " + ASCNodeVector);
+		//Debug.Log ("ecc " + eccentricityVector);
+		//Debug.Log ("sgp " + SGP);
+		//Debug.Log ("me " + ME);
+		//Debug.Log ("time: " + Time.timeScale);
 
-		if (Input.GetKeyDown (KeyCode.R)) {
-			resetSimulation ();
+
+
+		if (state == GameState.Start) {
+			ChangeTimeScale ();
+			getKeplarianElements ();
+			drawKeplarianElements ();
+			if (Input.GetKeyDown (KeyCode.R) && !resetCalled) {
+				//Time.timeScale = 0;
+				startVelocity = Vector3.zero;
+				startBox.SetActive(true);
+				state = shipBehavior.GameState.Stop;
+				satelliteBody.velocity = Vector3.zero;
+				dummyScript.satelliteBod.velocity = Vector3.zero;
+				satelliteBody.angularVelocity = Vector3.zero;
+				dummyScript.satelliteBod.angularVelocity = Vector3.zero;
+			}
+			if (boxScript.clicked){
+				//Debug.Log("click vel: " + startVelocity);
+				shipBegin ();
+				resetShips ();
+				resetSimulation ();
+			}
+			/*
+			Debug.Log ("velocity norm: " + satelliteBody.velocity.normalized);
+			Debug.Log ("ship forward norm: " + -shipform.forward.normalized);
+			*/
 		}
-
-		Debug.Log ("velocity norm: " + satelliteBody.velocity.normalized);
-		Debug.Log ("ship forward norm: " + -shipform.forward.normalized);
 
 	}
 	
 	// FixedUpdate - called every fixed framerate or every physics step, eliminates error from gravity calculations
 	void FixedUpdate () {
-		ApplyGravity ();
+		if (state == GameState.Start) {
+			ApplyGravity ();
 
-		if (Time.timeScale == 1) { // if in time warp, put ship on rails, eliminates a lot of lag
-			rotateShip ();
-			moveShip ();
+			if (Time.timeScale == 1) { // if in time warp, put ship on rails, eliminates a lot of lag
+				rotateShip ();
+				moveShip ();
 
+			}
 		}
 	}
 
@@ -168,8 +223,8 @@ public class shipBehavior : MonoBehaviour {
 		// NOTE: since ship mass is so small it is negligible, therefore the second m is ignored
 		double gravTemp = ((GRAVITATIONAL_CONSTANT * EARTH_MASS) / (double)shipform.position.sqrMagnitude);
 		float grav = (float)gravTemp;
-		
 		Vector3 gravityVector = satelliteBody.position.normalized * -grav;  // normalize the position vector of the ship then apply grav
+
 		satelliteBody.AddForce (gravityVector, ForceMode.Acceleration); 	// add the new force to the ship as an acceleration
 	}
 	
@@ -321,27 +376,34 @@ public class shipBehavior : MonoBehaviour {
 	
 	}*/
 
-	// resets the simulation to the original starting values of a (basically) circular orbit
-	public void resetSimulation () {
 
-		dummyScript.dummyCanvas.enabled = true;
-		dummyScript.gameObject.SetActive (true);
-
+	public void resetShips () {
 		satelliteBody.rotation = new Quaternion (0, 1, 0, 0);
 		satelliteBody.velocity = Vector3.zero;
 		satelliteBody.angularVelocity = Vector3.zero;
 		satelliteBody.position = startPosition;
+		startVelocity = boxScript.vel;
 
+		//Debug.Log (startPosition);
 		dummyScript.satelliteBod.velocity = Vector3.zero;
 		dummyScript.satelliteBod.angularVelocity = Vector3.zero;
 		dummyScript.satelliteBod.position = dummyScript.startPos;
+	}
+
+	// resets the simulation to the original starting values of a (basically) circular orbit
+	public void resetSimulation () {
+		//Debug.Log ("reset called");
+		dummyScript.explosion.gameObject.SetActive (false);
+		dummyScript.dummyCanvas.enabled = true;
+		//dummyScript.gameObject.SetActive (true);
+
+		//resetShips ();
 
 		angMomentum = Vector3.zero;
 		ASCNodeVector = Vector3.zero;
-		eccentricityVector = Vector3.zero;
+		//eccentricityVector = Vector3.zero;
 		//referenceVector = Vector3.zero
-		
-		SGP = 0;						
+							
 		ME = 0;						
 		eccentricAnomaly = 0.0f;
 		meanAnomaly = 0.0f;			
@@ -366,15 +428,23 @@ public class shipBehavior : MonoBehaviour {
 		//ASCNodeMag = 0.0f;
 		//DESCNodeMag = 0.0f;
 
-		Start ();
-		dummyScript.dummyBegin ();
+		boxScript.clicked = false;
+
+		vectors.SetActive (true);
+		signs.SetActive (true);
+	
+
+		resetCalled = false;
+
+		//Time.timeScale = 1;
+		warpPtr = 0;
 	}
 
 	/***************************CHECK ALL OF THESE FUNCTIONS********************************/
 	#region KEPLARIAN FUNCTIONS
 
 	void getKeplarianElements() {
-
+		//Debug.Log ("called");
 		// init angular momentum
 		getAngularMomentum ();
 
@@ -467,6 +537,7 @@ public class shipBehavior : MonoBehaviour {
 		void getEccentricity () {
 			float shipVel = satelliteBody.velocity.magnitude;
 			float shipAlt = satelliteBody.position.magnitude;
+
 
 			eccentricityVector = ((satelliteBody.position * ((shipVel * shipVel) - (float)(SGP / (double)shipAlt))) -
 			        (satelliteBody.velocity * (Vector3.Dot(satelliteBody.position, satelliteBody.velocity)))) / (float)SGP;

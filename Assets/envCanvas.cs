@@ -33,19 +33,31 @@ public class envCanvas : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		float avg = (shipScript.semiMajorAxis + shipScript.semiMinorAxis) / 2;
-		if (signPosted == SIGN_APA)
-			signForm.position = shipScript.eccentricityVector.normalized * -(shipScript.apoapsis + 600);
-		else if (signPosted == SIGN_PEA)
-			signForm.position = shipScript.eccentricityVector.normalized * (shipScript.periapsis + 600);
-		else if (signPosted == SIGN_ASC) {
-			signForm.position = shipScript.ASCNodeVector.normalized * (avg + 600);
-			signForm.Translate(new Vector3 (0, 100, 0));
-		} else if (signPosted == SIGN_DESC) {
-			signForm.position = -shipScript.ASCNodeVector.normalized * (avg + 600);
-			signForm.Translate(new Vector3 (0, 100, 0));
+
+		if (shipScript.state == shipBehavior.GameState.Start) {
+			float avg = (shipScript.semiMajorAxis + shipScript.semiMinorAxis) / 2;
+
+			if((Mathf.Abs(shipScript.semiMajorAxis) == Mathf.Infinity)) {
+				signForm.position = Vector3.zero;
+			}
+			else {
+				if (signPosted == SIGN_APA)
+					signForm.position = shipScript.eccentricityVector.normalized * -(shipScript.apoapsis + 600);
+				else if (signPosted == SIGN_PEA)
+					signForm.position = shipScript.eccentricityVector.normalized * (shipScript.periapsis + 600);
+				else if (signPosted == SIGN_ASC) {
+					signForm.position = shipScript.ASCNodeVector.normalized * (avg + 600);
+					signForm.Translate (new Vector3 (0, 100, 0));
+				} else if (signPosted == SIGN_DESC) {
+					signForm.position = -shipScript.ASCNodeVector.normalized * (avg + 600);
+					signForm.Translate (new Vector3 (0, 100, 0));
+				}
+
+				//Debug.Log(signForm.position);
+
+				signForm.LookAt (shipScript.satelliteBody.position);
+			}
 		}
 
-		signForm.LookAt (shipScript.satelliteBody.position);
 	}
 }

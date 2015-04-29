@@ -23,6 +23,7 @@ public class MainHUD : MonoBehaviour {
 	public Text trueAnomaly;
 	public Text passing;
 	public Text orbPeriod;
+	public Text pos;
 
 
 	// Use this for initialization
@@ -56,6 +57,7 @@ public class MainHUD : MonoBehaviour {
 		eccentricity.text = "eccentricity: " + shipScript.eccentricity;
 		trueAnomaly.text = "true anomaly: " + shipScript.trueAnomaly + " degrees";
 		orbPeriod.text = "orbital period: " + shipScript.orbitalPeriod + " sec";
+		pos.text = "dummy pos: " + shipScript.dummyScript.satelliteBod.position;
 
 
 //		orbitalElements.text = shipAlt + shipVel;
